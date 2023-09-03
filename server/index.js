@@ -4,11 +4,13 @@ const {ApolloServer} = require('@apollo/server')
 const {expressMiddleware } = require('@apollo/server/express4');
 const bodyParser = require('body-parser')
 const cors = require('cors');
+const {get} = require('./services/apiService')
+
+console.log(get)
 
 process.on('uncaughtException', (err) => {
     console.log('UNCAUGHT EXCEPTION! 💥 Shutting down...');
     console.log(err.name, err.message);
-    // console.log({err})
     process.exit(1);
 });
 
@@ -28,15 +30,20 @@ const server = new ApolloServer({
             getTodos: [Todo]
         }
     `,
-    resolvers: {},
+    resolvers: {
+        Query: {
+            getTodos: async () => (await get({url: 'https://jsonplaceholder.typicode.com/todos', params: {}})).data        }
+    },
 })
 
 app.use(bodyParser.json())
 app.use(cors())
 
-server.start()
+server.start().then(() => {
+    app.use('/graphql', expressMiddleware(server))
+})
 
-app.listen(port, () => console.log("SERVER START"))
+app.listen(port, () => console.log(`Server started at port ${port}`))
 
 process.on('unhandledRejection', (err) => {
     console.log('UNHANDLED REJECTION! 💥 Shutting down...');
